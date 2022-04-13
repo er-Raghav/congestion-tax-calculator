@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using congestion.calculator;
-public class CongestionTaxCalculator
+using congestion_tax_api.Models;
+
+public class CongestionTaxCalculator : ICongestionTaxCalculator
 {
     /**
          * Calculate the total toll fee for one day
@@ -10,19 +13,19 @@ public class CongestionTaxCalculator
          * @return - the total congestion tax for that day
          */
 
-    public int GetTax(Vehicle vehicle, DateTime[] dates)
+    public int GetTax(string vehicle, DateTime[] dates)
     {
-        DateTime intervalStart = dates[0];
+        var _rates = TaxRates.lstTaxRates;
         int totalFee = 0;
+        DateTime intervalStart = dates[0];
         foreach (DateTime date in dates)
-        {
-            int nextFee = GetTollFee(date, vehicle);
-            int tempFee = GetTollFee(intervalStart, vehicle);
+        {            
+            int nextFee = GetTollFee(date, vehicle, _rates);
+            int tempFee = GetTollFee(intervalStart, vehicle, _rates);
 
-            long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-            long minutes = diffInMillies / 1000 / 60;
+            double diffInMinutes = date.Subtract(intervalStart).TotalMinutes;
 
-            if (minutes <= 60)
+            if (diffInMinutes <= 60)
             {
                 if (totalFee > 0) totalFee -= tempFee;
                 if (nextFee >= tempFee) tempFee = nextFee;
@@ -30,42 +33,51 @@ public class CongestionTaxCalculator
             }
             else
             {
+
                 totalFee += nextFee;
             }
+            intervalStart = date;
         }
         if (totalFee > 60) totalFee = 60;
         return totalFee;
     }
 
-    private bool IsTollFreeVehicle(Vehicle vehicle)
+    private bool IsTollFreeVehicle(string vehicle)
     {
         if (vehicle == null) return false;
-        String vehicleType = vehicle.GetVehicleType();
-        return vehicleType.Equals(TollFreeVehicles.Motorcycle.ToString()) ||
-               vehicleType.Equals(TollFreeVehicles.Tractor.ToString()) ||
-               vehicleType.Equals(TollFreeVehicles.Emergency.ToString()) ||
-               vehicleType.Equals(TollFreeVehicles.Diplomat.ToString()) ||
-               vehicleType.Equals(TollFreeVehicles.Foreign.ToString()) ||
-               vehicleType.Equals(TollFreeVehicles.Military.ToString());
+        return vehicle.Equals(TollFreeVehicles.Motorcycle.ToString()) ||
+               vehicle.Equals(TollFreeVehicles.Tractor.ToString()) ||
+               vehicle.Equals(TollFreeVehicles.Emergency.ToString()) ||
+               vehicle.Equals(TollFreeVehicles.Diplomat.ToString()) ||
+               vehicle.Equals(TollFreeVehicles.Foreign.ToString()) ||
+               vehicle.Equals(TollFreeVehicles.Military.ToString());
     }
 
-    public int GetTollFee(DateTime date, Vehicle vehicle)
+    public int GetTollFee(DateTime date, string vehicle, List<TaxRateCard> rates)
     {
         if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle)) return 0;
+        foreach (var rate in rates)
+        {
+            if (IsEligibleforTollFee(date, rate))
+            {
+                return rate.amount;
+            };
+        }
+        return 0;
+        
+    }
 
-        int hour = date.Hour;
-        int minute = date.Minute;
+    private bool IsEligibleforTollFee(DateTime date, TaxRateCard taxRateCard)
+    {
 
-        if (hour == 6 && minute >= 0 && minute <= 29) return 8;
-        else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
-        else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
-        else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-        else if (hour >= 8 && hour <= 14 && minute >= 30 && minute <= 59) return 8;
-        else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-        else if (hour == 15 && minute >= 0 || hour == 16 && minute <= 59) return 18;
-        else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
-        else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
-        else return 0;
+        TimeSpan start = new TimeSpan(taxRateCard.startHour, taxRateCard.startMinute, 0);
+        TimeSpan end = new TimeSpan(taxRateCard.endHour, taxRateCard.endMinute, 0);
+        TimeSpan current = date.TimeOfDay;
+        if (current >= start && current <= end)
+        {
+            return true;
+        }
+        return false;
     }
 
     private Boolean IsTollFreeDate(DateTime date)
