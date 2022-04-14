@@ -26,6 +26,10 @@ namespace congestion_tax_api
         {
             services.AddControllers();
             services.AddSwaggerGen();
+            services.AddRouting(routingOptions =>
+            {
+                routingOptions.LowercaseUrls = true;
+            });
             //Add Congestion Tax Service
             services.AddSingleton<ICongestionTaxCalculator, CongestionTaxCalculator>();
         }

@@ -14,9 +14,9 @@ namespace congestion.calculator
             var path = Path.Combine(Environment.CurrentDirectory,"Data\\", "RateCard.json");
             using var streamReader = new StreamReader(path);
             var json = streamReader.ReadToEnd();
-            lstTaxRates = JsonConvert.DeserializeObject<List<TaxRateCard>>(json);
+            lstTaxRates = JsonConvert.DeserializeObject<TaxRateCard[]>(json);
         }
 
-        public static List<TaxRateCard> lstTaxRates { get; set; }
+        public static TaxRateCard[] lstTaxRates { get; }
     }
 }
