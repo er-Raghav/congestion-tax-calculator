@@ -1,0 +1,3 @@
+is_global = true
+build_property.RootNamespace = congestion_tax_api
+build_property.ProjectDir = C:\volvo\congestion-tax-calc-main\congestion-tax-calc-main\congestion-tax-api\
